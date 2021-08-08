@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	
+	<sub-flow name="zipcodes-requestSub_Flow" doc:id="242f6969-13d7-4a20-a0fe-72ac77e72669" >
+		<http:request method="GET" doc:name="ZipCodes Request" doc:id="58739b61-e760-446c-becf-21c6df4eaedf" config-ref="ZipCode-HTTP_Request_configuration" path="/rest/{token}/state-zips.json/{state}">
+			<http:uri-params><![CDATA[#[output application/java
+---
+{
+	"token": "${secure::zipcodes.token}",
+	"state" : vars.state
+}]]]></http:uri-params>
+		</http:request>
+	</sub-flow>
+	
+	<flow name="get-zipcodes-by-stateSub_Flow" doc:id="a0ec53ed-50fb-46fd-ab8f-071b87cde9d6">
+		<scheduler doc:name="Scheduler" doc:id="d889f418-1a01-4ff1-ae4c-f24d3b91d5c8" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="7" timeUnit="DAYS"/>
+			</scheduling-strategy>
+		</scheduler>
+		<async doc:name="StartAsync" doc:id="97978768-bc01-4538-826f-3bbd1cf6c4e9" >
+			<ee:transform doc:name="additionalKeys" doc:id="c4b7c112-804f-4ad4-9806-1e8a687a3d76">
+			<ee:message>
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"flowStep": "start",
+	"message": "Scheduler invoked creating file for Zipcodes and its locations"
+}]]></ee:set-payload>
+			</ee:message>
+				<ee:variables >
+				</ee:variables>
+		</ee:transform>
+				<logger level="INFO" doc:name="Log to Sumologic/Splunk" doc:id="c8a23267-1087-49c0-b46b-9453cd206a1d" message="#[payload]"/>
+		</async>
+<!-- 		<file:read doc:name="Read" doc:id="32a369af-9e76-45ef-b2ea-db9c3b65d4e6" path="C:\Users\shvak\AnypointStudio\DiscountTire-Workspace\weather-api\src\main\resources\states-1.json" /> -->
+		<logger level="INFO" doc:name="SFTP READ Connector" doc:id="79e95b2e-e3d0-452f-b6bb-828cb1d954dd" />
+		<set-payload value="#[output application/java --- payload pluck $$]" doc:name="Set Payload" doc:id="91a8a841-e280-4614-b165-eabcac481229" />
+		<foreach doc:name="For Each" doc:id="d289f530-3efa-44e6-ae52-ecc847d7b84d">
+			<set-variable value="#[vars.counter]" doc:name="Set StatesCounter" doc:id="d8cbff6c-e4d8-46a2-9e74-1cdf91515e6c" variableName="statesCounter"/>
+			<set-variable value="#[payload]" doc:name="Set State" doc:id="ccbb7c3c-7210-4540-813e-112a0dd31884" variableName="state" />
+			<flow-ref doc:name="zipcodes-requestSub_Flow" doc:id="8e774676-9356-4a9c-a0c0-5ee3ec8080ce" name="zipcodes-requestSub_Flow" />
+			<flow-ref doc:name="get-locations-by-zipcodesFlow" doc:id="cff9b5cd-37be-4236-8d90-06546856b455" name="get-locations-by-zipcodesFlow" />
+		</foreach>
+		<async doc:name="EndAsync" doc:id="4b6845fa-468c-4434-b7db-e856999e22f3" >
+			<ee:transform doc:name="additionalKeys" doc:id="bf3c2827-56e1-49cc-85b2-bed0c6ba399c">
+			<ee:message>
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"flowStep": "end",
+	"message": "Scheduler completed creating file for Zipcodes and its locations"
+}]]></ee:set-payload>
+			</ee:message>
+				<ee:variables >
+				</ee:variables>
+		</ee:transform>
+				<logger level="INFO" doc:name="Log to Sumologic/Splunk" doc:id="bd2006f7-c3ac-4752-9037-4eb010e56607" message="#[payload]"/>
+		</async>
+	</flow>
+	
+	<flow name="get-locations-by-zipcodesFlow" doc:id="20eff397-f5ef-4030-a9e6-ebe7dbe1f66c" >
+		<set-payload value="#[output application/java --- payload.zip_codes]" doc:name="Set Payload" doc:id="d5b22b50-0234-4ae5-9fae-f81cf1f9d51d" />
+		<foreach doc:name="For Each" doc:id="adb78755-2bcd-40eb-9e90-8853823d0861" collection="#[payload]" batchSize="50">
+			<set-variable value='#[payload joinBy ","]' doc:name="Set Zipcodes" doc:id="b6409cea-a950-4e37-a6ed-f0a62a2bbf96" variableName="zipcodes"/>
+			<http:request method="GET" doc:name="Get Location Request" doc:id="0130f3e0-2e66-4fc5-b933-e432720dfbfb" config-ref="getLocation-HTTP_Request_configuration" path="/api/v1/search">
+				<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"codes" : vars.zipcodes,
+	"country" : "US",
+	"apikey" : "383bfcc0-f800-11eb-adcb-8fda04ac47d3"
+}]]]></http:query-params>
+			</http:request>
+			<choice doc:name="Choice" doc:id="4f5a85bf-7691-4f12-a074-dcf1614020dc" >
+				<when expression="#[vars.statesCounter == 1]">
+					<!-- <file:write doc:id="128661a0-500a-4dfa-aa70-9bbcbcf0a881" path="C:\Users\shvak\OneDrive\Desktop\QuickenLoans\test.csv" mode="APPEND">
+				<file:content><![CDATA[#[%dw 2.0
+output application/csv headerLineNumber=0, header=true
+var te = if (payload.results != []) (flatten(payload.results pluck $)) else null
+-&#45;&#45;
+te default [] map {
+	PostalCode: $.postal_code ,
+	City: $.city ,
+	State: $.state_code 
+}]]]></file:content>
+			</file:write> -->
+					<logger level="INFO" doc:name="SFTP WRITE Connector" doc:id="69b98d4d-18bc-47dd-a2ae-51d29f685bca" />
+				
+</when>
+			<otherwise >
+					<!-- <file:write doc:name="Write" doc:id="744f4dda-948c-468b-9e20-bb269d086e97" path="C:\Users\shvak\OneDrive\Desktop\QuickenLoans\test.csv" mode="APPEND" >
+						<file:content ><![CDATA[#[%dw 2.0
+output application/csv headerLineNumber=0, header=false
+var te = flatten(payload.results pluck $)
+-&#45;&#45;
+te map {
+	PostalCode: $.postal_code ,
+	City: $.city ,
+	State: $.state_code 
+}]]]></file:content>
+					</file:write> -->
+					<logger level="INFO" doc:name="SFTP WRITE Connector" doc:id="790fc2e4-b98b-4c3f-ba9a-402688d5a94c" />
+		</otherwise>
+			</choice>
+		</foreach>
+	</flow>	
+</mule>

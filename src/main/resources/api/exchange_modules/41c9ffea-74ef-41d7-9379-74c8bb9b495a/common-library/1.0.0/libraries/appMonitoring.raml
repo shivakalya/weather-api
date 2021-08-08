@@ -1,0 +1,28 @@
+#%RAML 1.0 Library
+
+types:
+
+  healthCheckResponseBody:
+    description: Sub systems health check
+    type: object
+    properties:
+      status: string
+      application: string
+      env: string
+      version: string
+      systems:
+        type: array
+        items:
+          properties:
+            name: string
+            status: string
+            message: string
+
+  pingResponseBody:
+    description: API health check
+    type: object
+    properties:
+      status: string
+      application: string
+      env: string
+      version: string

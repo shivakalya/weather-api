@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd ">
+    
+    <flow name="api-main">
+        <http:listener config-ref="api-httpListenerConfig" path="${secure::https.listener.path}">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <set-variable value="#[attributes.headers.uuid default uuid()]" doc:name="Set UUID" doc:id="6a1fd35a-817e-468d-b59e-1037815d574a" variableName="uuid" />
+        <apikit:router config-ref="api-config" />
+        <error-handler ref="api-common-error" />
+    </flow>
+    
+    <flow name="api-console">
+        <http:listener config-ref="api-httpListenerConfig" path="${secure::https.listener.consolepath}">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <set-variable value="#[p('mule.env')]" doc:name="Set Env" doc:id="b5288b96-85f7-492f-a214-967586016a07" variableName="env" />
+        <choice doc:name="Choice" doc:id="308346f8-e71d-4e00-85dc-78990be86ac4">
+            <when expression="#[vars.env != 'prod']">
+				<apikit:console config-ref="api-config" />
+            </when>
+			<otherwise>
+                <logger level="INFO" doc:name="Log-Warn" doc:id="682b3328-0bf9-4e23-9101-e6356ab582b0" message="Console is disabled for Production environment" />
+            </otherwise>
+        </choice>
+        <error-handler ref="api-common-error" />
+    </flow>
+    
+    <flow name="get:\healthCheck:api-config">
+        <logger level="INFO" doc:name="Call all the End systems here" doc:id="adc509ff-46b7-49d5-ae46-bd3428d9822b" />
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:name="HealthCheck Response">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	status: "active",
+	application: "weather-api",
+	env: "dev",
+	version: "v1",
+	systems: [{
+		name: "Google API",
+		status: "success",
+		message: "Google API is up and running"
+	}]
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<error-handler ref="messaging-common-error" />
+    </flow>
+    
+    <flow name="get:\ping:api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:name="Ping Response">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	status: "active",
+	application: "weather-api",
+	env: "dev",
+	version: "v1"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<error-handler ref="messaging-common-error" />
+    </flow>
+    
+    <flow name="get:\weather:api-config">
+		<flow-ref doc:name="geoCode_Flow" doc:id="76eee1e9-c7dd-44c5-838e-ce46383362b9" name="geoCode_Flow"/>
+		<error-handler ref="messaging-common-error" />
+    </flow>
+	<flow name="get:\usZipCodes:api-config">
+		<flow-ref doc:name="get-all-Usa-States-Zipcodes" doc:id="0278d545-3aa8-4583-afff-aa278cdf95f6" name="get-all-Usa-States-Zipcodes"/>
+		<error-handler ref="messaging-common-error" />
+    </flow>
+
+</mule>

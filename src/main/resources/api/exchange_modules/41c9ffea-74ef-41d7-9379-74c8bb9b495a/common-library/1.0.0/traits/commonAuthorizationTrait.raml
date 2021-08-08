@@ -1,0 +1,12 @@
+#%RAML 1.0 Trait
+displayName: client-id-required
+usage: This Api is secured with policies, use this headers to pass client information, for Authentication.
+headers:
+  client_id:
+    type: string
+    required: true
+    example: 421cb368-066b-11e1-9647-c5be7398b24e
+  client_secret:
+    type: string
+    required: true
+    example: 628cb368-066b-11e1-9647-c5be7398b25e

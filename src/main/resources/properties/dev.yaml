@@ -1,0 +1,9 @@
+#Listner
+https.listener:
+  path: "/api/*"
+  consolepath: "/console/*"
+  port: "8082"
+  
+zipcodes:
+  token: "![9v8QCkNkd+1g1DPSGfyZd9zz5k/7FxilBNNk2T6r0+2eAWksfFkdQh92QvAY/Rs1GEnuVP/CwYeCncXLA+VjNSvyqfrym0E40KmFT56QfE0=]"
+  

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+
+	<flow name="get-all-Usa-States-Zipcodes" doc:id="ea804823-c794-4744-a26b-423e8b0b3d1b" >
+		<set-variable value="#[attributes.queryParams.state]" doc:name="Set State" doc:id="e5324578-f8e7-4da4-8ae5-3a6b976bcdbd" variableName="state"/>
+		<async doc:name="StartAsync" doc:id="ed12912e-7a59-4d4a-9bc8-c93636c77c50">
+			<ee:transform doc:name="additionalKeys" doc:id="20c27b37-1d94-4ce3-94fe-0b6597b899b2">
+			<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"flowStep": "start",
+	"message": "received request to get zipcodes of state",
+	"state": vars.state
+}]]></ee:set-payload>
+			</ee:message>
+				<ee:variables>
+				</ee:variables>
+		</ee:transform>
+				<logger level="INFO" doc:name="Log to Sumologic/Splunk" doc:id="12bb3941-f1cc-40a2-8f12-a111820b4fa9" message="#[payload]" />
+		</async>
+		<flow-ref doc:name="zipcodes-requestSub_Flow" doc:id="ae6ea651-ea72-4ae8-9672-1ea1b794ec97" name="zipcodes-requestSub_Flow"/>
+		<ee:transform doc:name="Transform Message" doc:id="0759c42a-eb67-4a64-9fbb-6a581fdf09cb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<async doc:name="EndAsync" doc:id="85930f99-c6cc-4dff-8a70-bce26815464c" >
+			<ee:transform doc:name="additionalKeys" doc:id="7cde6a81-e9d0-411d-b4f4-02f53b4ed50e">
+			<ee:message>
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"flowStep": "end",
+	"message": "request completed for zipcode details",
+	"state": vars.state
+}]]></ee:set-payload>
+			</ee:message>
+				<ee:variables >
+				</ee:variables>
+		</ee:transform>
+				<logger level="INFO" doc:name="Log to Sumologic/Splunk" doc:id="a64c8361-48e0-43f4-9896-03225591e30b" message="#[payload]"/>
+		</async>
+	</flow>
+
+</mule>

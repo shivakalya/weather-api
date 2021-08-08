@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	
+	<flow name="geoCode_Flow" doc:id="4d8f6993-a1dc-42b5-bce5-841561f51ba6" >
+		<set-variable value="#[attributes.queryParams.ipAddress]" doc:name="Set ipAddress" doc:id="94718968-469a-4986-a64e-a254c8de9c6b" variableName="ipAddress"/>
+		<async doc:name="StartAsync" doc:id="1ae75632-5eca-4906-a424-f61478335159" >
+			<ee:transform doc:name="additionalKeys" doc:id="817c591e-bc45-4347-8150-1ebdf1696b2c">
+			<ee:message>
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"flowStep": "start",
+	"message": "received request to get weather details",
+	"ipAddress": vars.ipAddress
+}]]></ee:set-payload>
+			</ee:message>
+				<ee:variables >
+				</ee:variables>
+		</ee:transform>
+				<logger level="INFO" doc:name="Log to Sumologic/Splunk" doc:id="1ee8750a-2315-4dab-912c-617bb613906e" message="#[payload]"/>
+		</async>
+		<http:request method="GET" doc:name="Geocode Request" doc:id="f451d5e7-47b2-4ba7-bdf7-9c8071cbbfa4" config-ref="Geocode-HTTPS_Request_configuration" path="/json/{ipAddress}" sendCorrelationId="ALWAYS">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"ipAddress" : vars.ipAddress
+}]]]></http:uri-params>
+		</http:request>
+		<logger level="DEBUG" doc:name="Logger" doc:id="5a00545c-abae-4e9f-b386-2c521382db1d" message="Geocode request complete" category="com.weather"/>
+		<ee:transform doc:name="Transform Message" doc:id="a66e343c-f138-4b69-b7ce-fc53294bc6dd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	country: payload.country,
+	state: payload.region,
+	city: payload.city,
+	zip: payload.zip,
+	streetName: (Mule::lookup('streetName-lookup_Flow', payload, 60000)).streetName
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="DEBUG" doc:name="Logger" doc:id="975953a7-469b-416e-80b0-fbf68e8edf15" category="com.weather" message="Before calling Weather API"/>
+		<http:request method="GET" doc:name="Weather API Request" doc:id="98faf5dc-e854-4c23-8936-de07255b5419" config-ref="Weather-HTTP_Request_configuration" path="/forecasts/{area}">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"x-rapidapi-key" : "e4f4ba80f4mshc66a65830f544f4p15cffajsn8691a7fe89f5"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"area" : payload.city ++ "," ++ payload.state
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="a565d301-50e2-4772-bf7f-4efa1bc2184f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	currentTempC: if (payload.response[0].periods[0].tempC == null) (payload.response[0].periods[0].feelslikeC) 
+					else (payload.response[0].periods[0].tempC) ,
+	currentTempF: if (payload.response[0].periods[0].tempF == null) (payload.response[0].periods[0].feelslikeF) 
+					else (payload.response[0].periods[0].tempF),
+	todayMaxTempC: payload.response[0].periods[0].maxTempC,
+	todayMaxTempF: payload.response[0].periods[0].maxTempF,
+	todayMinTempC: payload.response[0].periods[0].minTempC,
+	todayMinTempF: payload.response[0].periods[0].minTempF,
+	currentOutlook: payload.response[0].periods[0].weather
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<async doc:name="EndAsync" doc:id="fb765a8a-3a9d-49f5-b9a2-3cebba79194c" >
+			<ee:transform doc:name="additionalKeys" doc:id="6c8ed5e8-69ce-477b-bb3c-759ea42f5ac7">
+			<ee:message>
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"flowStep": "end",
+	"message": "request completed for weather details",
+	"ipAddress": vars.ipAddress
+}]]></ee:set-payload>
+			</ee:message>
+				<ee:variables >
+				</ee:variables>
+		</ee:transform>
+				<logger level="INFO" doc:name="Log to Sumologic/Splunk" doc:id="b2663db8-97be-494d-ade0-94a741329809" message="#[payload]"/>
+		</async>
+	</flow>
+	
+	<flow name="streetName-lookup_Flow" doc:id="83e40636-f9f4-4ce2-bf45-745342d607eb">
+		<set-variable value="#[payload.lat]" doc:name="Set Latitude" doc:id="f3870c4c-df69-4137-935c-9f634181148d" variableName="lat" />
+		<set-variable value="#[payload.lon]" doc:name="Set Longitude" doc:id="5edccbc1-001d-424c-ae55-d6962ec3ba1f" variableName="lon" />
+		<logger level="DEBUG" doc:name="Logger" doc:id="1e1759f8-6a2d-4400-ba44-7c63603cac9c" message="Before calling Street name Request" category="com.weather" />
+		<http:request method="GET" doc:name="StreetName Request" doc:id="f53622c7-390b-4a1c-ac54-314e1ff7ca4e" config-ref="StreetName-HTTP_Request_configuration" path="/v1/revgeocode">
+			<http:query-params><![CDATA[#[output application/java
+---
+{
+	"apikey" : "MHAJpPyj4kAJ26f_TZLM5t927j4w45a8PVIZKQvq2ks",
+	"at" : vars.lat ++ "," ++ vars.lon
+}]]]></http:query-params>
+		</http:request>
+		<logger level="DEBUG" doc:name="Logger" doc:id="c580fe3c-3f35-4cee-b037-adb39be5864f" message="After calling Street name Request" category="com.weather" />
+		<set-payload value='#[{
+	streetName: payload.items[0].address.street default ""
+}]' doc:name="Set Payload" doc:id="e3ddd343-4b5f-4cb9-8f1b-c3274f48e528" />
+	</flow>
+
+</mule>

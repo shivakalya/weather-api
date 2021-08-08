@@ -1,0 +1,24 @@
+#%RAML 1.0 Library
+usage: Provides a collection of common resources, traits and types for use in API Specifications
+
+types: 
+  commonErrorType: !include dataTypes/commonErrorResponseType.raml
+   
+traits:
+  commonErrorTrait: !include traits/commonErrorTrait.raml
+  commonAuthorizationTrait: !include traits/commonAuthorizationTrait.raml
+  commonTrackableTrait: !include traits/commonTrackableTrait.raml
+
+  400: !include traits/commonError400Trait.raml
+  401: !include traits/commonError401Trait.raml
+  404: !include traits/commonError404Trait.raml
+  406: !include traits/commonError406Trait.raml
+  408: !include traits/commonError408Trait.raml
+  415: !include traits/commonError415Trait.raml
+  500: !include traits/commonError500Trait.raml
+  501: !include traits/commonError501Trait.raml
+  503: !include traits/commonError503Trait.raml
+
+resourceTypes:
+  commonPingRT: !include resourceTypes/pingResponseRT.raml
+  commonHealthCheckRT: !include resourceTypes/healthCheckResponseRT.raml

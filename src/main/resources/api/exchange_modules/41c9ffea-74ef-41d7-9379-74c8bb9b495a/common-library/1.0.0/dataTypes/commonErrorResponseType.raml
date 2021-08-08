@@ -1,0 +1,17 @@
+#%RAML 1.0 DataType
+displayName: CommonErrorResponseType
+description: Defines the message body returned with error responses
+type: object
+properties:
+  ErrorDetails?:
+    type: object
+    properties:
+      Code?:
+        type: number
+        example: 500
+      Type?:
+        type: string
+        example: APIKIT:INTERNAL_SERVER_ERROR
+      Message?:
+        type: string
+        example: Internal Server Error

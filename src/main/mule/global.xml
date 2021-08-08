@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	
+	<http:listener-config name="api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="${secure::https.listener.port}" protocol="HTTPS">
+			<tls:context >
+				<tls:key-store type="jks" path="mule.jks" alias="mule" keyPassword="password" password="password" />
+			</tls:context>
+		</http:listener-connection>
+    </http:listener-config>
+    
+    <apikit:config name="api-config" api="api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	
+	<http:request-config name="Geocode-HTTPS_Request_configuration" doc:name="HTTP Request configuration" doc:id="8e0d7cfa-c0bd-4ad3-8baa-106605f2646a" >
+		<http:request-connection host="ip-api.com"/>
+	</http:request-config>
+	
+	<http:request-config name="StreetName-HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="ad78ec4a-0db4-474c-8fcd-ab1eedeb17bd" >
+		<http:request-connection protocol="HTTPS" host="revgeocode.search.hereapi.com"/>
+	</http:request-config>
+	
+	<http:request-config name="Weather-HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="a9919148-34c6-493d-a6df-facf5a0e2473" >
+		<http:request-connection protocol="HTTPS" host="aerisweather1.p.rapidapi.com" />
+	</http:request-config>
+	
+	<http:request-config name="ZipCode-HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="b96339f2-94e3-4527-953e-6891a8ae63d5" >
+		<http:request-connection protocol="HTTPS" host="www.zipcodeapi.com" />
+	</http:request-config>
+	
+	<http:request-config name="getLocation-HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="e38d3565-34da-4cc1-9307-da2d87daa961" >
+		<http:request-connection protocol="HTTPS" host="app.zipcodebase.com" />
+	</http:request-config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="29355853-8195-4af4-bea3-de4f1069ed8b" file="properties/${env}.yaml" key="${property.key}" />
+	
+
+</mule>

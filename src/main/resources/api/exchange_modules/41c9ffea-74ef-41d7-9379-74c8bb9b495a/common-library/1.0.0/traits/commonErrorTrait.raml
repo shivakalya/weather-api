@@ -1,0 +1,54 @@
+#%RAML 1.0 Trait
+usage: Apply this trait to define common response codes returned by all API implementations. Codes uch as 401, 429, etc., which are returned by the runtime itself, are not included.
+responses:
+  400:
+    body:
+      application/json:
+        type: commonErrorType
+        example: !include ../examples/error400.raml
+  401:
+    body:
+      application/json:
+        type: commonErrorType
+        example: !include ../examples/error401.raml
+
+  404:
+    body:
+      application/json:
+        type: commonErrorType
+        example: !include ../examples/error404.raml
+  406:
+    body:
+      application/json:
+        type: commonErrorType
+        example: !include ../examples/error406.raml
+
+  408:
+    body:
+      application/json:
+        type: commonErrorType
+        example: !include ../examples/error408.raml
+
+  415:
+    body:
+      application/json:
+        type: commonErrorType
+        example: !include ../examples/error415.raml
+
+  500:
+    body:
+      application/json:
+        type: commonErrorType
+        example: !include ../examples/error500.raml
+
+  501:
+    body:
+      application/json:
+        type: commonErrorType
+        example: !include ../examples/error501.raml
+         
+  503:
+    body:
+      application/json:
+        type: commonErrorType
+        example: !include ../examples/error503.raml

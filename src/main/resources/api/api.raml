@@ -1,0 +1,65 @@
+#%RAML 1.0
+title: weather-api
+version: v1
+baseUri: https://{envPrefix}-weather-api-v1/api/*
+
+
+baseUriParameters:
+  envPrefix:
+    default: "dev"
+    enum: ["dev", "qa", "uat"]
+protocols: [HTTP, HTTPS]
+mediaType: [application/json]
+
+
+uses:
+  commonLib: exchange_modules/41c9ffea-74ef-41d7-9379-74c8bb9b495a/common-library/1.0.0/common-lib.raml
+
+/ping:
+  displayName: Ping
+  description: Checks if this API is active and returns a 200 status OK with "active" message if the API call succeeds.
+  is: [commonLib.commonErrorTrait]
+  type: 
+    commonLib.commonPingRT:
+     pingResponse: !include api/examples/pingResponse.raml
+
+/healthCheck:
+  displayName: Health Check
+  description: Checks if this API's dependent systems are active, and returns a 200 status OK if the API call succeeds.
+  is: [commonLib.commonErrorTrait]
+  type: 
+    commonLib.commonHealthCheckRT:
+      healthCheckResponse: !include api/examples/healthCheckResponse.raml
+
+/weather:
+  description: Get Weather Information
+  displayName: get-weather-data
+  is: [commonLib.commonErrorTrait]
+  get:
+    queryParameters:
+      ipAddress:
+        type: string
+        required: true
+    responses:
+      200:
+        body:
+          application/json:
+            type: !include api/types/weatherResp.raml
+            example: !include api/examples/weatherResp.raml
+
+/usZipCodes:
+  is: [commonLib.commonErrorTrait]
+  get:
+    queryParameters:
+      state:
+        type: string
+        required: true
+        minLength: 2
+        maxLength: 2
+        example: "NH"
+    responses:
+      200:
+        body:
+          application/json:
+            type: !include api/types/zipCodesResp.raml
+            example: !include api/examples/zipCodesResp.raml
